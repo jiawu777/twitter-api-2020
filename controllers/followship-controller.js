@@ -5,7 +5,7 @@ const { relativeTime } = require('../helpers/date-helper')
 const followshipController = {
   addFollowing: (req, res, next) => {
     // 測試檔未通過
-    const followerId = getUser(req).id // 追隨者AKA登入者
+    const followerId = getUser(req).dataValues.id // 追隨者AKA登入者
     const followingId = Number(req.body.id) // 被追蹤的人
     return Promise.all([
       User.findByPk(followingId), // 找有沒有這個使用者

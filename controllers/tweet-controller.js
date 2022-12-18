@@ -4,7 +4,7 @@ const { relativeTime } = require('../helpers/date-helper')
 
 const tweetController = {
   postTweet: (req, res, next) => {
-    const UserId = getUser(req).id
+    const UserId = getUser(req).dataValues.id
     const { description } = req.body
     if (description.length > 140) return res.status(500).json({ status: '內容不可超出140字' })
     return Tweet.create({
@@ -16,23 +16,22 @@ const tweetController = {
   getTweets: (req, res, next) => {
     const currentUserId = getUser(req).id
     return Tweet.findAll({
-      include: [{ model: User, attributes: ['id', 'account', 'name', 'avatar'] }],
+      include: { model: User, attributes: ['id', 'account', 'name', 'avatar'] },
       order: [['createdAt', 'DESC']],
-      raw: true,
       nest: true,
       attributes: ['id', 'description', 'createdAt',
-        [sequelize.literal('(SELECT COUNT(id) FROM Likes WHERE Likes.Tweet_id = Tweet.id)'), 'likeCount'],
-        [sequelize.literal('(SELECT COUNT(id) FROM Replies WHERE Replies.Tweet_id = Tweet.id)'), 'replyCount']
+        [sequelize.literal('(SELECT COUNT(id) FROM Replies WHERE Replies.Tweet_id = Tweet.id)'), 'replyCount'],
+        [sequelize.literal('(SELECT COUNT(id) FROM Likes WHERE Likes.Tweet_id = Tweet.id)'), 'likeCount']
       ]
     })
       .then(tweets => {
         if (!tweets) throw new Error('貼文不存在!')
         const data = tweets.map(t => ({
-          ...t,
+          ...t.toJSON(),
           isLiked: currentUserId?.Likes?.some(currentUserLike => currentUserLike?.TweetId === t.id),
           createdAt: relativeTime(t.createdAt)
         }))
-        res.status(200).json(data)
+        return res.status(200).json(data)
       })
       .catch(err => next(err))
   },
